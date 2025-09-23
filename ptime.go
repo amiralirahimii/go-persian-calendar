@@ -422,22 +422,44 @@ func norm(hi, lo, base int) (int, int) {
 	return hi, lo
 }
 
-// norm returns nhi, nlo such that
-//
-//	hi * base + lo == nhi * base + nlo
-//	0 <= nlo < base
-func normDay(hi, lo, base int) (int, int) {
-	if lo < 1 {
-		n := (-lo-1)/base + 1
-		hi -= n
-		lo += n * base
+func normDay(year, month, day int) (int, int, int) {
+	for {
+		var curMonthDay int
+		if isLeap(year) {
+			curMonthDay = pMonthCount[month][1]
+		} else {
+			curMonthDay = pMonthCount[month][0]
+		}
+
+		if day <= curMonthDay && day > 0 {
+			break
+		}
+
+		if day <= 0 {
+			month--
+			if month < 0 {
+				month = 11
+				year--
+			}
+
+			if isLeap(year) {
+				day = day + pMonthCount[month][1]
+			} else {
+				day = day + pMonthCount[month][0]
+			}
+
+			continue
+		}
+
+		day -= curMonthDay
+		month++
+		if month > 11 {
+			month = 0
+			year++
+		}
 	}
-	if lo > base {
-		n := lo / base
-		hi += n
-		lo -= n * base
-	}
-	return hi, lo
+
+	return year, month, day
 }
 
 // Set sets t.
@@ -468,11 +490,8 @@ func (t *Time) Set(year int, month Month, day, hour, min, sec, nsec int, loc *ti
 		m = 11
 	}
 
-	if isLeap(year) {
-		m, day = normDay(m, day, pMonthCount[m][1])
-	} else {
-		m, day = normDay(m, day, pMonthCount[m][0])
-	}
+	year, m, day = normDay(year, m, day)
+
 	year, m = norm(year, m, 12)
 	month = Month(m) + 1
 	t.year = year
